@@ -124,25 +124,14 @@ public class ContactsHelper {
 
         String order = sorter != null ? sorter.raw : null;
         String where = filter != null ? TextUtils.join(" AND ", filter) : null;
-        Log.e(TAG, "where=" + where);
-        Cursor c = resolver.query(
+
+        return resolver.query(
                 uri,
                 CONTACTS_PROJECTION,
                 where,
                 null,
                 order
         );
-
-        return c;
-    }
-
-    public String[] concatArrays(String[] a, String[] b) {
-        int aLen = a.length;
-        int bLen = b.length;
-        String[] c = new String[aLen + bLen];
-        System.arraycopy(a, 0, c, 0, aLen);
-        System.arraycopy(b, 0, c, aLen, bLen);
-        return c;
     }
 
     private static void log(List<Contact> contacts) {

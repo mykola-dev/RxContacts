@@ -20,6 +20,7 @@ public class RxContacts {
         if (instance == null)
             instance = new RxContacts(ctx);
 
+        // reset conditions on each instance request
         instance.withPhones = false;
         instance.withEmails = false;
         instance.sorter = null;
@@ -38,7 +39,7 @@ public class RxContacts {
     }
 
     /**
-     * Emmits device owner if available
+     * Emits device owner if available
      * @return
      */
     public Observable<Contact> getProfile() {
@@ -56,18 +57,66 @@ public class RxContacts {
         return profileObservable;
     }
 
+    /**
+     * Use it if you need low level access to the library methods
+     * @return
+     */
     public ContactsHelper getContactsHelper() {
         return helper;
     }
 
+    /**
+     * Run ContentResolver query and emit results to the Observable
+     * @return
+     */
     public Observable<Contact> getContacts() {
         if (contactsObservable == null)
             contactsObservable = Observable.create((Subscriber<? super Contact> subscriber) -> {
-                emit(null, withPhones, withEmails,sorter,filter, subscriber);
+                emit(null, withPhones, withEmails, sorter, filter, subscriber);
             }).onBackpressureBuffer().serialize();
 
         return contactsObservable;
     }
+
+    /**
+     * Run extra query on Phones table if needed
+     * @return
+     */
+    public RxContacts withPhones() {
+        withPhones = true;
+        return this;
+    }
+
+    /**
+     * Run extra query on Emails table for each contact
+     * @return
+     */
+    public RxContacts withEmails() {
+        withEmails = true;
+        return this;
+    }
+
+    /**
+     * Sort emitted contacts. This sort runs on sqlite query.
+     * @param sorter
+     * @return
+     */
+    public RxContacts sort(Sorter sorter) {
+        this.sorter = sorter;
+        return this;
+    }
+
+    /**
+     * Filter contacts with specific conditions
+     * @param filter
+     * @return
+     */
+    public RxContacts filter(Filter... filter) {
+        this.filter = filter;
+        return this;
+    }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private void emit(String query, boolean withPhones, boolean withEmails, Sorter sorter, Filter[] filter, Subscriber<? super Contact> subscriber) {
         Cursor c = helper.getContactsCursor(query, sorter, filter);
@@ -84,25 +133,5 @@ public class RxContacts {
         c.close();
 
         subscriber.onCompleted();
-    }
-
-    public RxContacts withPhones() {
-        withPhones = true;
-        return this;
-    }
-
-    public RxContacts withEmails() {
-        withEmails = true;
-        return this;
-    }
-
-    public RxContacts sort(Sorter sorter) {
-        this.sorter = sorter;
-        return this;
-    }
-
-    public RxContacts filter(Filter... filter) {
-        this.filter = filter;
-        return this;
     }
 }
