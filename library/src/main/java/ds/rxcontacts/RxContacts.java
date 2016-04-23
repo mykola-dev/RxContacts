@@ -7,7 +7,7 @@ import rx.Subscriber;
 
 import static rx.Observable.*;
 
-public class RxContacts {
+public class RxContacts /*extends Observable*/ {
 
     private static RxContacts instance;
 
@@ -24,7 +24,8 @@ public class RxContacts {
     private Observable<Contact> contactsObservable;
     private Observable<Contact> contactsNoEmailsObservable;
 
-    private RxContacts(Context ctx) {
+    private RxContacts(Context ctx/*, OnSubscribe s*/) {
+        //super(s);
         helper = new ContactsHelper(ctx);
     }
 
