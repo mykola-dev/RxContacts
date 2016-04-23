@@ -19,7 +19,6 @@ import java.util.List;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import ds.rxcontacts.*;
-import ds.rxcontacts.Filter;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
@@ -61,8 +60,8 @@ public class MainActivity extends RxAppCompatActivity {
         Subscription s = RxContacts.getInstance(this)
                                    .withPhones()
                                    .withEmails()
-                                   //.sort(Sorter.HAS_IMAGE)
-                                   .filter(Filter.HAS_IMAGE, Filter.HAS_PHONE)
+                                   .sort(Sorter.HAS_IMAGE)
+                                   //.filter(Filter.HAS_EMAILS)
                                    .getContacts()
                                    .subscribeOn(Schedulers.io())
                                    .observeOn(AndroidSchedulers.mainThread())
@@ -74,7 +73,7 @@ public class MainActivity extends RxAppCompatActivity {
                                        Toast.makeText(this, "time=" + (System.currentTimeMillis() - timestamp) + "ms", Toast.LENGTH_SHORT).show();
                                    });
 
-       // new Handler().postDelayed(() -> s.unsubscribe(), 100);
+        // new Handler().postDelayed(() -> s.unsubscribe(), 100);
 
     }
 
@@ -114,8 +113,14 @@ public class MainActivity extends RxAppCompatActivity {
             h.name.setText(c.name);
             h.emails.setText(TextUtils.join(", ", c.emails));
             h.phones.setText(TextUtils.join(", ", c.phones));
+            setVisibility(h.phones);
+            setVisibility(h.emails);
             Glide.with(context).load(c.photoUri).into(h.image);
 
+        }
+
+        private void setVisibility(TextView textView) {
+            textView.setVisibility(TextUtils.isEmpty(textView.getText()) ? View.GONE : View.VISIBLE);
         }
 
         @Override

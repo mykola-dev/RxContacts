@@ -24,12 +24,15 @@ public class ContactsHelper {
 
     public static boolean DEBUG = false;
 
-    private static final String[] EMAIL_PROJECTION = new String[] {CommonDataKinds.Email.DATA, CommonDataKinds.Email.CONTACT_ID};
-    private static final String[] PHONE_PROJECTION = new String[] {CommonDataKinds.Phone.NUMBER, CommonDataKinds.Phone.CONTACT_ID};
+    private static final String[] DATA_PROJECTION = {
+            ContactsContract.Data.DATA1,    // email/phone
+            ContactsContract.Data.MIMETYPE,
+            //        ContactsContract.Data.CONTACT_ID
+    };
 
     private static final String[] CONTACTS_PROJECTION = new String[] {
             Contacts._ID,
-            Contacts.DISPLAY_NAME,
+            Contacts.DISPLAY_NAME_PRIMARY,
             Contacts.PHOTO_THUMBNAIL_URI,
             Contacts.HAS_PHONE_NUMBER
     };
@@ -94,23 +97,34 @@ public class ContactsHelper {
     Contact fetchContact(Cursor c, boolean withPhones, boolean withEmails) {
         String id = c.getString(c.getColumnIndex(Contacts._ID));
         Contact contact = new Contact(id);
-        contact.name = c.getString(c.getColumnIndex(Contacts.DISPLAY_NAME));
+        contact.name = c.getString(c.getColumnIndex(Contacts.DISPLAY_NAME_PRIMARY));
 
         // photo thumb
         String thumbUri = c.getString(c.getColumnIndex(Contacts.PHOTO_THUMBNAIL_URI));
         contact.photoUri = thumbUri;
 
-        // get phone numbers
-        if (withPhones && c.getInt(c.getColumnIndex(Contacts.HAS_PHONE_NUMBER)) > 0) {
-            List<String> phones = getPhones(id);
-            contact.phones.addAll(phones);
+        // get data
+        if (withPhones && c.getInt(c.getColumnIndex(Contacts.HAS_PHONE_NUMBER)) > 0 || withEmails) {
+            List<String> phones = new ArrayList<>();
+            List<String> emails = new ArrayList<>();
+            Cursor data = getDataCursor(id, withPhones, withEmails);
+            while (data.moveToNext()) {
+                String value = data.getString(data.getColumnIndex(ContactsContract.Data.DATA1));
+                switch (data.getString(data.getColumnIndex(ContactsContract.Data.MIMETYPE))) {
+                    case CommonDataKinds.Email.CONTENT_ITEM_TYPE:
+                        emails.add(value);
+                        break;
+                    case CommonDataKinds.Phone.CONTENT_ITEM_TYPE:
+                        phones.add(cleanPhone(value));
+                        break;
+
+                }
+            }
+            contact.phones = phones;
+            contact.emails = emails;
+            data.close();
         }
 
-        // get emails
-        if (withEmails) {
-            List<String> emails = getEmails(id);
-            contact.emails.addAll(emails);
-        }
         return contact;
     }
 
@@ -134,50 +148,35 @@ public class ContactsHelper {
         );
     }
 
+    Cursor getDataCursor(String contactId, boolean withPhones, boolean withEmails) {
+        List<String> selections = new ArrayList<>();
+        List<String> args = new ArrayList<>();
+        args.add(contactId);
+        String where = ContactsContract.Data.MIMETYPE + "=?";
+        if (withPhones) {
+            selections.add(where);
+            args.add(CommonDataKinds.Phone.CONTENT_ITEM_TYPE);
+        }
+        if (withEmails) {
+            selections.add(where);
+            args.add(CommonDataKinds.Email.CONTENT_ITEM_TYPE);
+        }
+
+        Cursor data = resolver.query(
+                ContactsContract.Data.CONTENT_URI,
+                DATA_PROJECTION,
+                String.format("%s=?" + " AND " + "(%s)", ContactsContract.Data.CONTACT_ID, TextUtils.join(" OR ", selections)),
+                args.toArray(new String[args.size()]), null);
+
+        return data;
+    }
+
     private static void log(List<Contact> contacts) {
         Log.v(TAG, "=== contacts ===");
         for (Contact c : contacts) {
             Log.v(TAG, c.toString());
         }
 
-    }
-
-    private List<String> getPhones(String contactId) {
-        List<String> result = new ArrayList<>();
-        Cursor phoneCursor = resolver.query(
-                CommonDataKinds.Phone.CONTENT_URI,
-                PHONE_PROJECTION,
-                CommonDataKinds.Phone.CONTACT_ID + " = ?",
-                new String[] {contactId},
-                null
-        );
-        while (phoneCursor.moveToNext()) {
-            String phoneNumber = phoneCursor.getString(phoneCursor.getColumnIndex(CommonDataKinds.Phone.NUMBER));
-            result.add(cleanPhone(phoneNumber));
-        }
-        phoneCursor.close();
-
-        return result;
-    }
-
-    private List<String> getEmails(String contactId) {
-        List<String> result = new ArrayList<>();
-        Set<String> emailSet = new HashSet<>();
-        Cursor emailCursor = resolver.query(
-                CommonDataKinds.Email.CONTENT_URI,
-                EMAIL_PROJECTION,
-                CommonDataKinds.Email.CONTACT_ID + " = ?",
-                new String[] {contactId},
-                null
-        );
-        while (emailCursor.moveToNext()) {
-            String email = emailCursor.getString(emailCursor.getColumnIndex(CommonDataKinds.Email.DATA));
-            emailSet.add(email);
-        }
-        emailCursor.close();
-        result.addAll(emailSet);
-
-        return result;
     }
 
     /**
@@ -208,7 +207,7 @@ public class ContactsHelper {
         String name = null;
         if (c.moveToFirst()) {
             String id = c.getString(c.getColumnIndex(Contacts._ID));
-            name = c.getString(c.getColumnIndex(Contacts.DISPLAY_NAME));
+            name = c.getString(c.getColumnIndex(Contacts.DISPLAY_NAME_PRIMARY));
         }
         c.close();
         return name;
