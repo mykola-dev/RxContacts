@@ -77,6 +77,7 @@ public class ContactsHelper {
 
         Cursor c = getContactsCursor(query, sorter, filter);
 
+        // todo: try to use only Data table so only 1 query per request should run
         while (c.moveToNext()) {
             Contact contact = fetchContact(c, withPhones, withEmails);
             result.add(contact);

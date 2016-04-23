@@ -19,6 +19,7 @@ import java.util.List;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import ds.rxcontacts.*;
+import ds.rxcontacts.Filter;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
@@ -59,9 +60,9 @@ public class MainActivity extends RxAppCompatActivity {
         progress.setVisibility(View.GONE);
         Subscription s = RxContacts.getInstance(this)
                                    .withPhones()
-                                   .withEmails()
+                                   //.withEmails()
                                    .sort(Sorter.HAS_IMAGE)
-                                   //.filter(Filter.HAS_EMAILS)
+                                   .filter(Filter.HAS_PHONE)
                                    .getContacts()
                                    .subscribeOn(Schedulers.io())
                                    .observeOn(AndroidSchedulers.mainThread())

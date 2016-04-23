@@ -1,11 +1,6 @@
 apply plugin: 'com.android.application'
 apply plugin: 'me.tatarka.retrolambda'
 
-repositories {
-    jcenter()
-    maven { url "https://dl.bintray.com/deviant-studio/maven/" }
-}
-
 android {
     compileSdkVersion 23
     buildToolsVersion "23.0.3"
