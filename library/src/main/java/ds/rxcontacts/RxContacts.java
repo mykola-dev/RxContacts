@@ -1,60 +1,40 @@
 package ds.rxcontacts;
 
 import android.content.Context;
+import android.database.Cursor;
+import android.util.Log;
 
 import rx.Observable;
 import rx.Subscriber;
 
-import static rx.Observable.*;
-
-public class RxContacts /*extends Observable*/ {
+public class RxContacts {
 
     private static RxContacts instance;
+
+    boolean withPhones;
+    boolean withEmails;
+    private Sorter sorter;
+    private Filter[] filter;
 
     public static RxContacts getInstance(Context ctx) {
         if (instance == null)
             instance = new RxContacts(ctx);
 
+        instance.withPhones = false;
+        instance.withEmails = false;
+        instance.sorter = null;
+        instance.filter = null;
+
         return instance;
     }
 
-    ContactsHelper helper;
+    private ContactsHelper helper;
 
     private Observable<Contact> profileObservable;
     private Observable<Contact> contactsObservable;
-    private Observable<Contact> contactsNoEmailsObservable;
 
-    private RxContacts(Context ctx/*, OnSubscribe s*/) {
-        //super(s);
+    private RxContacts(Context ctx) {
         helper = new ContactsHelper(ctx);
-    }
-
-    /**
-     * Same as getAll() but produce extra query to fetch emails
-     * @return
-     */
-    public Observable<Contact> getAllWithEmails() {
-        if (contactsObservable == null)
-            contactsObservable = defer(() -> from(helper.filter(null, true, true))).cache();
-
-        return contactsObservable;
-    }
-
-    public Observable<Contact> getAll() {
-        if (contactsNoEmailsObservable == null)
-            contactsNoEmailsObservable = defer(() -> from(helper.filter(null, true, false))).cache();
-
-        return contactsNoEmailsObservable;
-    }
-
-    public Observable<Contact> getAllWithEmailsRx() {
-        return Observable.create((Subscriber<? super Contact> subscriber) -> {
-            helper.emit(null, true, true, subscriber);
-        }).onBackpressureBuffer();
-    }
-
-    public Observable<Contact> get(String filter) {
-        return defer(() -> from(helper.filter(filter, true, true)));
     }
 
     /**
@@ -74,5 +54,55 @@ public class RxContacts /*extends Observable*/ {
         }
 
         return profileObservable;
+    }
+
+    public ContactsHelper getContactsHelper() {
+        return helper;
+    }
+
+    public Observable<Contact> getContacts() {
+        if (contactsObservable == null)
+            contactsObservable = Observable.create((Subscriber<? super Contact> subscriber) -> {
+                emit(null, withPhones, withEmails,sorter,filter, subscriber);
+            }).onBackpressureBuffer().serialize();
+
+        return contactsObservable;
+    }
+
+    private void emit(String query, boolean withPhones, boolean withEmails, Sorter sorter, Filter[] filter, Subscriber<? super Contact> subscriber) {
+        Cursor c = helper.getContactsCursor(query, sorter, filter);
+        while (c.moveToNext()) {
+            Contact contact = helper.fetchContact(c, withPhones, withEmails);
+            if (!subscriber.isUnsubscribed())
+                subscriber.onNext(contact);
+            else
+                break;
+
+            if (ContactsHelper.DEBUG)
+                Log.i("emit", contact.toString() + " is subscribed=" + !subscriber.isUnsubscribed());
+        }
+        c.close();
+
+        subscriber.onCompleted();
+    }
+
+    public RxContacts withPhones() {
+        withPhones = true;
+        return this;
+    }
+
+    public RxContacts withEmails() {
+        withEmails = true;
+        return this;
+    }
+
+    public RxContacts sort(Sorter sorter) {
+        this.sorter = sorter;
+        return this;
+    }
+
+    public RxContacts filter(Filter... filter) {
+        this.filter = filter;
+        return this;
     }
 }

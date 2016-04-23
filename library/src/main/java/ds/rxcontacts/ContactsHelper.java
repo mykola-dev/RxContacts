@@ -9,12 +9,11 @@ import android.net.Uri;
 import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.text.TextUtils;
 import android.util.Log;
 import android.util.Patterns;
 
 import java.util.*;
-
-import rx.Subscriber;
 
 import static android.provider.ContactsContract.CommonDataKinds;
 import static android.provider.ContactsContract.Contacts;
@@ -56,7 +55,7 @@ public class ContactsHelper {
         if (filter == null)
             return null;
 
-        List<Contact> contacts = filter(filter, true, true);
+        List<Contact> contacts = filter(filter, true, true, null, null);
         if (!contacts.isEmpty())
             return contacts.get(0);
         else
@@ -70,10 +69,10 @@ public class ContactsHelper {
      * @return list with contacts data
      */
     @NonNull
-    public List<Contact> filter(String query, boolean withPhones, boolean withEmails) {
+    public List<Contact> filter(String query, boolean withPhones, boolean withEmails, Sorter sorter, Filter[] filter) {
         List<Contact> result = new ArrayList<>();
 
-        Cursor c = getContactsCursor(query);
+        Cursor c = getContactsCursor(query, sorter, filter);
 
         while (c.moveToNext()) {
             Contact contact = fetchContact(c, withPhones, withEmails);
@@ -87,21 +86,12 @@ public class ContactsHelper {
         return result;
     }
 
-    public void emit(String query, boolean withPhones, boolean withEmails, Subscriber<? super Contact> subscriber) {
-        Cursor c = getContactsCursor(query);
-        while (c.moveToNext()) {
-            Contact contact = fetchContact(c, withPhones, withEmails);
-            subscriber.onNext(contact);
-            if (DEBUG)
-                Log.i("emit", contact.toString());
-        }
-        c.close();
-
-        subscriber.onCompleted();
+    public static String cleanPhone(String phone) {
+        return phone.replaceAll("-|\\s|\\(|\\)|\\+", "");
     }
 
     @NonNull
-    private Contact fetchContact(Cursor c, boolean withPhones, boolean withEmails) {
+    Contact fetchContact(Cursor c, boolean withPhones, boolean withEmails) {
         String id = c.getString(c.getColumnIndex(Contacts._ID));
         Contact contact = new Contact(id);
         contact.name = c.getString(c.getColumnIndex(Contacts.DISPLAY_NAME));
@@ -111,7 +101,7 @@ public class ContactsHelper {
         contact.photoUri = thumbUri;
 
         // get phone numbers
-        if (Integer.parseInt(c.getString(c.getColumnIndex(Contacts.HAS_PHONE_NUMBER))) > 0) {
+        if (withPhones && c.getInt(c.getColumnIndex(Contacts.HAS_PHONE_NUMBER)) > 0) {
             List<String> phones = getPhones(id);
             contact.phones.addAll(phones);
         }
@@ -124,7 +114,7 @@ public class ContactsHelper {
         return contact;
     }
 
-    private Cursor getContactsCursor(String query) {
+    Cursor getContactsCursor(String query, Sorter sorter, Filter[] filter) {
         Uri uri;
         if (query == null) {
             uri = Contacts.CONTENT_URI;
@@ -132,19 +122,27 @@ public class ContactsHelper {
             uri = Uri.withAppendedPath(Contacts.CONTENT_FILTER_URI, query);
         }
 
+        String order = sorter != null ? sorter.raw : null;
+        String where = filter != null ? TextUtils.join(" AND ", filter) : null;
+        Log.e(TAG, "where=" + where);
         Cursor c = resolver.query(
                 uri,
                 CONTACTS_PROJECTION,
+                where,
                 null,
-                null,
-                null
+                order
         );
 
         return c;
     }
 
-    private static String cleanPhone(String phone) {
-        return phone.replaceAll("-|\\s|\\(|\\)|\\+", "");
+    public String[] concatArrays(String[] a, String[] b) {
+        int aLen = a.length;
+        int bLen = b.length;
+        String[] c = new String[aLen + bLen];
+        System.arraycopy(a, 0, c, 0, aLen);
+        System.arraycopy(b, 0, c, aLen, bLen);
+        return c;
     }
 
     private static void log(List<Contact> contacts) {

@@ -19,6 +19,8 @@ import java.util.List;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import ds.rxcontacts.*;
+import ds.rxcontacts.Filter;
+import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
@@ -27,8 +29,6 @@ public class MainActivity extends RxAppCompatActivity {
     @Bind(R.id.recycler) RecyclerView recyclerView;
     @Bind(R.id.progress) View progress;
 
-    ContactsHelper contacts;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -36,21 +36,16 @@ public class MainActivity extends RxAppCompatActivity {
         ButterKnife.bind(this);
         ContactsHelper.DEBUG = true;
 
-        contacts = new ContactsHelper(getApplicationContext());
-
         RxPermissions.getInstance(this)
                      .request(Manifest.permission.READ_CONTACTS)
-                     .subscribe(granted -> {
-                         if (granted) {
-                             Contact owner = contacts.getProfileContact();
-                             Log.v("owner", owner != null ? owner.toString() : "none :(");
-
-                             initListRx();
-
-                         } else {
-                             // Oups permission denied
-                         }
+                     .filter(it -> it)
+                     .flatMap(it -> RxContacts.getInstance(this)
+                                              .getProfile())
+                     .subscribe(it -> {
+                         Log.v("owner", it.toString());
+                         initListRx();
                      });
+
 
     }
 
@@ -58,40 +53,28 @@ public class MainActivity extends RxAppCompatActivity {
         Log.v("#", message + " " + millis);
     }
 
-    private void initList() {
-        long timestamp = System.currentTimeMillis();
-        RxContacts.getInstance(this)
-                  .getAll()
-                  .subscribeOn(Schedulers.io())
-                  .observeOn(AndroidSchedulers.mainThread())
-                  .filter(it -> it.photoUri != null)
-                  .toSortedList()
-                  .compose(bindToLifecycle())
-                  .subscribe(it -> {
-                      recyclerView.setAdapter(new ContactsAdapter(this, it));
-                      progress.setVisibility(View.GONE);
-                      Toast.makeText(this, "time=" + (System.currentTimeMillis() - timestamp) + "ms", Toast.LENGTH_SHORT).show();
-                  }, Throwable::printStackTrace);
-
-    }
-
     private void initListRx() {
         long timestamp = System.currentTimeMillis();
         final ContactsAdapter adapter = new ContactsAdapter(this, null);
         recyclerView.setAdapter(adapter);
         progress.setVisibility(View.GONE);
-        RxContacts.getInstance(this)
-                  .getAllWithEmailsRx()
-                  .subscribeOn(Schedulers.io())
-                  .observeOn(AndroidSchedulers.mainThread())
-                  .filter(it -> it.photoUri != null)
-                  .compose(bindToLifecycle())
-                  .subscribe(it -> {
-                      Log.v("contact", it.toString());
-                      adapter.add(it);
-                  }, Throwable::printStackTrace, () -> {
-                      Toast.makeText(this, "time=" + (System.currentTimeMillis() - timestamp) + "ms", Toast.LENGTH_SHORT).show();
-                  });
+        Subscription s = RxContacts.getInstance(this)
+                                   .withPhones()
+                                   .withEmails()
+                                   //.sort(Sorter.HAS_IMAGE)
+                                   .filter(Filter.HAS_IMAGE, Filter.HAS_PHONE)
+                                   .getContacts()
+                                   .subscribeOn(Schedulers.io())
+                                   .observeOn(AndroidSchedulers.mainThread())
+                                   .compose(bindToLifecycle())
+                                   .subscribe(it -> {
+                                       Log.v("contact", it.toString());
+                                       adapter.add(it);
+                                   }, Throwable::printStackTrace, () -> {
+                                       Toast.makeText(this, "time=" + (System.currentTimeMillis() - timestamp) + "ms", Toast.LENGTH_SHORT).show();
+                                   });
+
+       // new Handler().postDelayed(() -> s.unsubscribe(), 100);
 
     }
 
