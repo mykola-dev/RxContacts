@@ -79,6 +79,18 @@ public class RxContacts {
     }
 
     /**
+     * Experimental!
+     * Faster query. Additional conditions doesn't work (withEmails, withPhotos, filters, sorters). Use Rx filters instead
+     * @return
+     */
+    public Observable<Contact> getContactsFast() {
+        return Observable.create((Subscriber<? super Contact> subscriber) -> {
+            emitFast(subscriber);
+        }).onBackpressureBuffer().serialize();
+
+    }
+
+    /**
      * Run extra query on Phones table if needed
      * @return
      */
@@ -129,6 +141,27 @@ public class RxContacts {
 
             if (ContactsHelper.DEBUG)
                 Log.i("emit", contact.toString() + " is subscribed=" + !subscriber.isUnsubscribed());
+        }
+        c.close();
+
+        subscriber.onCompleted();
+    }
+
+    private void emitFast(Subscriber<? super Contact> subscriber) {
+        Cursor c = helper.getFastContactsCursor();
+        if (c.getCount() != 0) {
+            c.moveToNext();
+            Contact contact;
+            while ((contact = helper.fetchContactFast(c)) != null) {
+
+                if (!subscriber.isUnsubscribed())
+                    subscriber.onNext(contact);
+                else
+                    break;
+
+                if (ContactsHelper.DEBUG)
+                    Log.i("emit fast", contact.toString() + " is subscribed=" + !subscriber.isUnsubscribed());
+            }
         }
         c.close();
 

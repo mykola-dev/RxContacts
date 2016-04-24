@@ -2,8 +2,7 @@ package ds.rxcontacts;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
-import android.content.ContentResolver;
-import android.content.Context;
+import android.content.*;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.ContactsContract;
@@ -26,8 +25,13 @@ public class ContactsHelper {
 
     private static final String[] DATA_PROJECTION = {
             ContactsContract.Data.DATA1,    // email/phone
+            ContactsContract.Data.MIMETYPE
+    };
+
+    private static final String[] DATA_PROJECTION_FULL = {
+            ContactsContract.Data.DATA1,    // email/phone
             ContactsContract.Data.MIMETYPE,
-            //        ContactsContract.Data.CONTACT_ID
+            ContactsContract.Data.CONTACT_ID
     };
 
     private static final String[] CONTACTS_PROJECTION = new String[] {
@@ -149,6 +153,7 @@ public class ContactsHelper {
         );
     }
 
+
     Cursor getDataCursor(String contactId, boolean withPhones, boolean withEmails) {
         List<String> selections = new ArrayList<>();
         List<String> args = new ArrayList<>();
@@ -170,6 +175,69 @@ public class ContactsHelper {
                 args.toArray(new String[args.size()]), null);
 
         return data;
+    }
+
+    Cursor getFastContactsCursor() {
+        String where = ContactsContract.Data.MIMETYPE + "=?";
+        String[] wheres = {where, where, where};
+        String[] selectionArgs = {
+                CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE,
+                CommonDataKinds.Email.CONTENT_ITEM_TYPE,
+                CommonDataKinds.Phone.CONTENT_ITEM_TYPE,
+        };
+        String selection = TextUtils.join(" OR ", wheres);
+        Cursor data = resolver.query(
+                ContactsContract.Data.CONTENT_URI,
+                DATA_PROJECTION_FULL,
+                selection,
+                selectionArgs,
+                ContactsContract.Data.CONTACT_ID
+        );
+
+        return data;
+    }
+
+    @Nullable
+    Contact fetchContactFast(Cursor c) {
+        String id = c.getString(c.getColumnIndex(ContactsContract.Data.CONTACT_ID));
+        Contact contact = new Contact(id);
+
+        // photo thumb
+        Uri contactUri = ContentUris.withAppendedId(Contacts.CONTENT_URI, Long.valueOf(id));
+        String thumbUri = Uri.withAppendedPath(contactUri, Contacts.Photo.CONTENT_DIRECTORY).toString();
+
+        contact.photoUri = thumbUri;
+
+        List<String> phones = new ArrayList<>();
+        List<String> emails = new ArrayList<>();
+
+        String nextId = id;
+        while (id.equals(nextId)) {
+            String value = c.getString(c.getColumnIndex(ContactsContract.Data.DATA1));
+            switch (c.getString(c.getColumnIndex(ContactsContract.Data.MIMETYPE))) {
+                case CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE:
+                    contact.name = value;
+                    break;
+                case CommonDataKinds.Email.CONTENT_ITEM_TYPE:
+                    emails.add(value);
+                    break;
+                case CommonDataKinds.Phone.CONTENT_ITEM_TYPE:
+                    phones.add(cleanPhone(value));
+                    break;
+
+            }
+
+            if (!c.moveToNext())
+                return null;
+            nextId = c.getString(c.getColumnIndex(ContactsContract.Data.CONTACT_ID));
+        }
+
+        //c.moveToPrevious();
+
+        contact.phones = phones;
+        contact.emails = emails;
+
+        return contact;
     }
 
     private static void log(List<Contact> contacts) {
