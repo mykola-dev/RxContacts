@@ -12,21 +12,22 @@
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:layout_marginRight="16dp"
+        android:src="#aaa"
         />
 
     <TextView
         android:id="@+id/name"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_toRightOf="@id/image"
+        android:fontFamily="sans-serif-light"
         android:textAppearance="?android:textAppearanceLarge"
         tools:text="John Smith"
-        android:fontFamily="sans-serif-light"
         />
 
     <TextView
         android:id="@+id/phones"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignLeft="@id/name"
         android:layout_below="@id/name"
@@ -35,7 +36,7 @@
 
     <TextView
         android:id="@+id/emails"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignLeft="@id/name"
         android:layout_below="@id/phones"

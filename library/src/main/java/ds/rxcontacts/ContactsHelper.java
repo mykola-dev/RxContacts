@@ -31,7 +31,8 @@ public class ContactsHelper {
     private static final String[] DATA_PROJECTION_FULL = {
             ContactsContract.Data.DATA1,    // email/phone
             ContactsContract.Data.MIMETYPE,
-            ContactsContract.Data.CONTACT_ID
+            ContactsContract.Data.CONTACT_ID,
+            Contacts.PHOTO_THUMBNAIL_URI
     };
 
     private static final String[] CONTACTS_PROJECTION = new String[] {
@@ -104,8 +105,7 @@ public class ContactsHelper {
         contact.name = c.getString(c.getColumnIndex(Contacts.DISPLAY_NAME_PRIMARY));
 
         // photo thumb
-        String thumbUri = c.getString(c.getColumnIndex(Contacts.PHOTO_THUMBNAIL_URI));
-        contact.photoUri = thumbUri;
+        contact.photoUri = c.getString(c.getColumnIndex(Contacts.PHOTO_THUMBNAIL_URI));
 
         // get data
         if (withPhones && c.getInt(c.getColumnIndex(Contacts.HAS_PHONE_NUMBER)) > 0 || withEmails) {
@@ -202,10 +202,10 @@ public class ContactsHelper {
         Contact contact = new Contact(id);
 
         // photo thumb
-        Uri contactUri = ContentUris.withAppendedId(Contacts.CONTENT_URI, Long.valueOf(id));
+       /* Uri contactUri = ContentUris.withAppendedId(Contacts.CONTENT_URI, Long.valueOf(id));
         String thumbUri = Uri.withAppendedPath(contactUri, Contacts.Photo.CONTENT_DIRECTORY).toString();
 
-        contact.photoUri = thumbUri;
+        contact.photoUri = thumbUri;*/
 
         List<String> phones = new ArrayList<>();
         List<String> emails = new ArrayList<>();
@@ -216,6 +216,7 @@ public class ContactsHelper {
             switch (c.getString(c.getColumnIndex(ContactsContract.Data.MIMETYPE))) {
                 case CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE:
                     contact.name = value;
+                    contact.photoUri = c.getString(c.getColumnIndex(Contacts.PHOTO_THUMBNAIL_URI));
                     break;
                 case CommonDataKinds.Email.CONTENT_ITEM_TYPE:
                     emails.add(value);

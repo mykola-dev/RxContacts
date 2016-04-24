@@ -20,7 +20,6 @@ import butterknife.Bind;
 import butterknife.ButterKnife;
 import ds.rxcontacts.*;
 import ds.rxcontacts.Filter;
-import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
@@ -34,7 +33,7 @@ public class MainActivity extends RxAppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
-        //ContactsHelper.DEBUG = true;
+        ContactsHelper.DEBUG = true;
 
         RxPermissions.getInstance(this)
                      .request(Manifest.permission.READ_CONTACTS)
@@ -58,22 +57,23 @@ public class MainActivity extends RxAppCompatActivity {
         final ContactsAdapter adapter = new ContactsAdapter(this, null);
         recyclerView.setAdapter(adapter);
         progress.setVisibility(View.GONE);
-        Subscription s = RxContacts.getInstance(this)
-                                   .withPhones()
-                                   .withEmails()
-                                   .sort(Sorter.HAS_IMAGE)
-                                   .filter(Filter.HAS_PHONE)
-                                   .getContacts()
-                                   .subscribeOn(Schedulers.io())
-                                   .observeOn(AndroidSchedulers.mainThread())
-                                   .compose(bindToLifecycle())
-                                   .subscribe(it -> {
-                                       if (ContactsHelper.DEBUG)
-                                           Log.v("contact", it.toString());
-                                       adapter.add(it);
-                                   }, Throwable::printStackTrace, () -> {
-                                       Toast.makeText(this, "time=" + (System.currentTimeMillis() - timestamp) + "ms", Toast.LENGTH_SHORT).show();
-                                   });
+        RxContacts.getInstance(this)
+                  .withPhones()
+                  .withEmails()
+                  .sort(Sorter.HAS_IMAGE)
+                  .filter(Filter.HAS_PHONE)
+                  .getContacts()
+                  .subscribeOn(Schedulers.io())
+                  .observeOn(AndroidSchedulers.mainThread())
+                  .compose(bindToLifecycle())
+                  .subscribe(it -> {
+                      if (ContactsHelper.DEBUG)
+                          Log.v("contact", it.toString());
+                      adapter.add(it);
+                  }, Throwable::printStackTrace, () -> {
+                      Toast.makeText(this, String.format("time=%sms items=%s", System.currentTimeMillis() - timestamp, recyclerView.getAdapter().getItemCount()),
+                              Toast.LENGTH_SHORT).show();
+                  });
 
     }
 
@@ -82,19 +82,20 @@ public class MainActivity extends RxAppCompatActivity {
         final ContactsAdapter adapter = new ContactsAdapter(this, null);
         recyclerView.setAdapter(adapter);
         progress.setVisibility(View.VISIBLE);
-        Subscription s = RxContacts.getInstance(this)
-                                   .getContactsFast()
-                                   .filter(it -> !it.phones.isEmpty())
-                                   .toList()
-                                   .subscribeOn(Schedulers.io())
-                                   .observeOn(AndroidSchedulers.mainThread())
-                                   .compose(bindToLifecycle())
-                                   .subscribe(it -> {
-                                       progress.setVisibility(View.GONE);
-                                       adapter.addAll(it);
-                                   }, Throwable::printStackTrace, () -> {
-                                       Toast.makeText(this, "time=" + (System.currentTimeMillis() - timestamp) + "ms", Toast.LENGTH_SHORT).show();
-                                   });
+        RxContacts.getInstance(this)
+                  .getContactsFast()
+                  .filter(it -> !it.phones.isEmpty() && it.photoUri != null)
+                  .toList()    // aggregate to list
+                  .subscribeOn(Schedulers.io())
+                  .observeOn(AndroidSchedulers.mainThread())
+                  .compose(bindToLifecycle())
+                  .subscribe(it -> {
+                      progress.setVisibility(View.GONE);
+                      adapter.addAll(it);
+                  }, Throwable::printStackTrace, () -> {
+                      Toast.makeText(this, String.format("time=%sms items=%s", System.currentTimeMillis() - timestamp, recyclerView.getAdapter().getItemCount()),
+                              Toast.LENGTH_SHORT).show();
+                  });
 
     }
 
