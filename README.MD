@@ -7,6 +7,8 @@ How to use:
 compile 'ds.rxcontacts:library:0.2.0'
 ```
 
+This library also requires RxJava dependency
+
 See sample project for use cases
 
 ```

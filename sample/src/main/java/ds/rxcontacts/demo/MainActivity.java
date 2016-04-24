@@ -34,7 +34,7 @@ public class MainActivity extends RxAppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
-        ContactsHelper.DEBUG = true;
+        //ContactsHelper.DEBUG = true;
 
         RxPermissions.getInstance(this)
                      .request(Manifest.permission.READ_CONTACTS)
@@ -68,7 +68,8 @@ public class MainActivity extends RxAppCompatActivity {
                                    .observeOn(AndroidSchedulers.mainThread())
                                    .compose(bindToLifecycle())
                                    .subscribe(it -> {
-                                       Log.v("contact", it.toString());
+                                       if (ContactsHelper.DEBUG)
+                                           Log.v("contact", it.toString());
                                        adapter.add(it);
                                    }, Throwable::printStackTrace, () -> {
                                        Toast.makeText(this, "time=" + (System.currentTimeMillis() - timestamp) + "ms", Toast.LENGTH_SHORT).show();
