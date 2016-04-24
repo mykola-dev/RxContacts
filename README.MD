@@ -2,7 +2,12 @@
 
 Convenient helper for fetching Android Contacts
 
+How to use:
+```
+compile 'ds.rxcontacts:library:0.2.0'
+```
 
+See sample project for use cases
 
 ```
 Copyright 2016 Deviant Studio

@@ -74,8 +74,6 @@ public class MainActivity extends RxAppCompatActivity {
                                        Toast.makeText(this, "time=" + (System.currentTimeMillis() - timestamp) + "ms", Toast.LENGTH_SHORT).show();
                                    });
 
-        // new Handler().postDelayed(() -> s.unsubscribe(), 100);
-
     }
 
     private void initListFast() {
