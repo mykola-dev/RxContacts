@@ -2,34 +2,32 @@ package ds.rxcontacts.demo
 
 import android.Manifest
 import android.content.Context
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.support.v7.widget.RecyclerView
 import android.text.TextUtils
 import android.util.Log
 import android.view.*
-import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
-import butterknife.Bind
-import butterknife.ButterKnife
 import com.bumptech.glide.Glide
 import com.tbruyelle.rxpermissions.RxPermissions
 import com.trello.rxlifecycle.components.support.RxAppCompatActivity
 import ds.rxcontacts.*
+import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.item_contact.view.*
 import rx.android.schedulers.AndroidSchedulers
 import rx.functions.Func1
 import rx.schedulers.Schedulers
 import java.util.*
 
-class MainActivity : RxAppCompatActivity() {
 
-	@Bind(R.id.recycler) lateinit var recyclerView: RecyclerView
-	@Bind(R.id.progress) lateinit var progress: View
+class MainActivity : RxAppCompatActivity() {
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 		setContentView(R.layout.activity_main)
-		ButterKnife.bind(this)
 		ContactsHelper.DEBUG = true
 
 		RxPermissions.getInstance(this)
@@ -47,7 +45,7 @@ class MainActivity : RxAppCompatActivity() {
 	private fun initList() {
 		val timestamp = System.currentTimeMillis()
 		val adapter = ContactsAdapter(this, null)
-		recyclerView.adapter = adapter
+		recycler.adapter = adapter
 		progress.visibility = View.GONE
 		RxContacts
 				.getInstance(this)
@@ -59,30 +57,34 @@ class MainActivity : RxAppCompatActivity() {
 				.subscribeOn(Schedulers.io())
 				.observeOn(AndroidSchedulers.mainThread())
 				.compose(bindToLifecycle<Contact>())
-				.subscribe {
-					Toast.makeText(this, "time=${System.currentTimeMillis() - timestamp}ms items=${recyclerView.adapter.itemCount}", Toast.LENGTH_SHORT).show()
-				}
+				.subscribe ({
+					            adapter.add(it)
+				            }, {
+					            it.printStackTrace()
+				            }, {
+					            Toast.makeText(this, "time=${System.currentTimeMillis() - timestamp}ms items=${recycler.adapter.itemCount}", Toast.LENGTH_SHORT).show()
+				            })
 
 	}
 
 	private fun initListFast() {
 		val timestamp = System.currentTimeMillis()
 		val adapter = ContactsAdapter(this, null)
-		recyclerView.adapter = adapter
-		progress.visibility = View.VISIBLE
+		recycler.adapter = adapter
+		//progress.visibility = View.VISIBLE
+		progress.visibility = View.GONE
 		RxContacts
 				.getInstance(this)
 				.contactsFast
-				.filter { !it.phones.isEmpty() && it.photoUri != null }
-				.toList()    // aggregate to list
+				.filter { !it.phones.isEmpty()/* && it.photoUri != null*/ }
+				//.toList()    // aggregate to list
 				.subscribeOn(Schedulers.io())
 				.observeOn(AndroidSchedulers.mainThread())
-				.compose(bindToLifecycle<List<Contact>>())
+				.compose(bindToLifecycle<Contact>())
 				.subscribe({
-					           progress.visibility = View.GONE
-					           adapter.addAll(it)
+					           adapter.add(it)
 				           }, { it.printStackTrace() }, {
-					           Toast.makeText(this, "time=${System.currentTimeMillis() - timestamp}ms items=${recyclerView.adapter.itemCount}", Toast.LENGTH_SHORT).show()
+					           Toast.makeText(this, "time=${System.currentTimeMillis() - timestamp}ms items=${recycler.adapter.itemCount}", Toast.LENGTH_SHORT).show()
 				           })
 
 	}
@@ -104,6 +106,7 @@ class MainActivity : RxAppCompatActivity() {
 
 	class ContactsAdapter(private val context: Context, contacts: List<Contact>?) : RecyclerView.Adapter<ContactsAdapter.ContactHolder>() {
 		internal var contacts: MutableList<Contact>
+		val gray = ColorDrawable(Color.LTGRAY)
 
 		init {
 			if (contacts != null)
@@ -130,12 +133,17 @@ class MainActivity : RxAppCompatActivity() {
 
 		override fun onBindViewHolder(h: ContactHolder, position: Int) {
 			val c = contacts[position]
-			h.name.text = c.name
-			h.emails.text = TextUtils.join(", ", c.emails)
-			h.phones.text = TextUtils.join(", ", c.phones)
-			setVisibility(h.phones)
-			setVisibility(h.emails)
-			Glide.with(context).load(c.photoUri).into(h.image)
+			val v = h.itemView;
+			v.name.text = c.name
+			v.emails.text = TextUtils.join(", ", c.emails)
+			v.phones.text = TextUtils.join(", ", c.phones)
+			setVisibility(v.phones)
+			setVisibility(v.emails)
+			Glide
+					.with(context)
+					.load(c.photoUri)
+					.fallback(gray)
+					.into(v.image)
 
 		}
 
@@ -147,17 +155,7 @@ class MainActivity : RxAppCompatActivity() {
 			return contacts.size
 		}
 
-		class ContactHolder(view: View) : RecyclerView.ViewHolder(view) {
-
-			@Bind(R.id.name) lateinit var name: TextView
-			@Bind(R.id.image) lateinit var image: ImageView
-			@Bind(R.id.phones) lateinit var phones: TextView
-			@Bind(R.id.emails) lateinit var emails: TextView
-
-			init {
-				ButterKnife.bind(this, view)
-			}
-		}
+		class ContactHolder(view: View) : RecyclerView.ViewHolder(view)
 	}
 
 
