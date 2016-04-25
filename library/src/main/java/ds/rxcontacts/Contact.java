@@ -2,15 +2,14 @@ package ds.rxcontacts;
 
 import android.support.annotation.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class Contact implements Comparable<Contact> {
     public String contactId;
     public String name;
     public String photoUri;
-    public List<String> emails = new ArrayList<>();
-    public List<String> phones = new ArrayList<>();
+    public List<String> emails;
+    public List<String> phones;
 
 
     public Contact(String contactId) {
