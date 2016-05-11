@@ -36,7 +36,8 @@ public class Contact implements Comparable<Contact> {
 
     @Override
     public String toString() {
-        return String.format("[%s] %s\tphones=%s\temails=%s\tphoto=%s", contactId, name, phones.toString(), emails.toString(), photoUri);
+        return String.format("[%s] %s\tphones=%s\temails=%s\tphoto=%s",
+                contactId, String.valueOf(name), String.valueOf(phones), String.valueOf(emails), String.valueOf(photoUri));
     }
 
     @Override

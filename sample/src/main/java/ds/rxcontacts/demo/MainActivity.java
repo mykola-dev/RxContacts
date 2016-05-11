@@ -19,7 +19,6 @@ import java.util.List;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import ds.rxcontacts.*;
-import ds.rxcontacts.Filter;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
@@ -58,10 +57,10 @@ public class MainActivity extends RxAppCompatActivity {
         recyclerView.setAdapter(adapter);
         progress.setVisibility(View.GONE);
         RxContacts.getInstance(this)
-                  .withPhones()
-                  .withEmails()
+                  //.withPhones()
+                  //.withEmails()
                   .sort(Sorter.HAS_IMAGE)
-                  .filter(Filter.HAS_PHONE)
+                  //.filter(Filter.HAS_PHONE)
                   .getContacts()
                   .subscribeOn(Schedulers.io())
                   .observeOn(AndroidSchedulers.mainThread())
@@ -152,8 +151,8 @@ public class MainActivity extends RxAppCompatActivity {
         public void onBindViewHolder(ContactHolder h, int position) {
             Contact c = contacts.get(position);
             h.name.setText(c.name);
-            h.emails.setText(TextUtils.join(", ", c.emails));
-            h.phones.setText(TextUtils.join(", ", c.phones));
+            h.emails.setText(c.emails != null ? TextUtils.join(", ", c.emails) : "");
+            h.phones.setText(c.phones != null ? TextUtils.join(", ", c.phones) : "");
             setVisibility(h.phones);
             setVisibility(h.emails);
             Glide.with(context).load(c.photoUri).into(h.image);
