@@ -149,11 +149,12 @@ public class RxContacts {
 
     private void emitFast(Subscriber<? super Contact> subscriber) {
         Cursor c = helper.getFastContactsCursor();
-        if (c.getCount() != 0) {
+        int count = c.getCount();
+        if (count != 0) {
             c.moveToNext();
             Contact contact;
-            while ((contact = helper.fetchContactFast(c)) != null) {
-
+            while (c.getPosition() < count) {
+                contact = helper.fetchContactFast(c);
                 if (!subscriber.isUnsubscribed())
                     subscriber.onNext(contact);
                 else

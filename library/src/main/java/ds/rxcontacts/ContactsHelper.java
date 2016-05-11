@@ -196,16 +196,10 @@ public class ContactsHelper {
         return data;
     }
 
-    @Nullable
+    @NonNull
     Contact fetchContactFast(Cursor c) {
         String id = c.getString(c.getColumnIndex(ContactsContract.Data.CONTACT_ID));
         Contact contact = new Contact(id);
-
-        // photo thumb
-       /* Uri contactUri = ContentUris.withAppendedId(Contacts.CONTENT_URI, Long.valueOf(id));
-        String thumbUri = Uri.withAppendedPath(contactUri, Contacts.Photo.CONTENT_DIRECTORY).toString();
-
-        contact.photoUri = thumbUri;*/
 
         List<String> phones = new ArrayList<>();
         List<String> emails = new ArrayList<>();
@@ -227,12 +221,11 @@ public class ContactsHelper {
 
             }
 
-            if (!c.moveToNext())
-                return null;
-            nextId = c.getString(c.getColumnIndex(ContactsContract.Data.CONTACT_ID));
+            if (c.moveToNext())
+                nextId = c.getString(c.getColumnIndex(ContactsContract.Data.CONTACT_ID));
+            else
+                break;
         }
-
-        //c.moveToPrevious();
 
         contact.phones = phones;
         contact.emails = emails;

@@ -57,8 +57,8 @@ public class MainActivity extends RxAppCompatActivity {
         recyclerView.setAdapter(adapter);
         progress.setVisibility(View.GONE);
         RxContacts.getInstance(this)
-                  //.withPhones()
-                  //.withEmails()
+                  .withPhones()
+                  .withEmails()
                   .sort(Sorter.HAS_IMAGE)
                   //.filter(Filter.HAS_PHONE)
                   .getContacts()
@@ -83,7 +83,7 @@ public class MainActivity extends RxAppCompatActivity {
         progress.setVisibility(View.VISIBLE);
         RxContacts.getInstance(this)
                   .getContactsFast()
-                  .filter(it -> !it.phones.isEmpty() && it.photoUri != null)
+                  //.filter(it -> !it.phones.isEmpty()/* && it.photoUri != null*/)
                   .toList()    // aggregate to list
                   .subscribeOn(Schedulers.io())
                   .observeOn(AndroidSchedulers.mainThread())
