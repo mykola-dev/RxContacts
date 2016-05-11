@@ -4,7 +4,7 @@ Convenient helper for fetching Android Contacts
 
 How to use:
 ```
-compile 'ds.rxcontacts:library:0.2.1'
+compile 'ds.rxcontacts:library:0.2.4'
 ```
 
 This library also requires RxJava dependency
