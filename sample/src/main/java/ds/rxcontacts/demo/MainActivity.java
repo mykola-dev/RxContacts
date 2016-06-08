@@ -59,7 +59,7 @@ public class MainActivity extends RxAppCompatActivity {
         RxContacts.getInstance(this)
                   .withPhones()
                   .withEmails()
-                  .sort(Sorter.HAS_IMAGE)
+                  .sort(Sorter.LAST_TIME_CONTACTED)
                   //.filter(Filter.HAS_PHONE)
                   .getContacts()
                   .subscribeOn(Schedulers.io())

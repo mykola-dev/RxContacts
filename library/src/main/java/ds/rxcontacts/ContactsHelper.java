@@ -32,14 +32,18 @@ public class ContactsHelper {
             ContactsContract.Data.DATA1,    // email/phone
             ContactsContract.Data.MIMETYPE,
             ContactsContract.Data.CONTACT_ID,
-            Contacts.PHOTO_THUMBNAIL_URI
+            ContactsContract.Data.PHOTO_THUMBNAIL_URI,
+            ContactsContract.Data.STARRED,
+            ContactsContract.Data.LAST_TIME_CONTACTED
     };
 
     private static final String[] CONTACTS_PROJECTION = new String[] {
             Contacts._ID,
             Contacts.DISPLAY_NAME_PRIMARY,
             Contacts.PHOTO_THUMBNAIL_URI,
-            Contacts.HAS_PHONE_NUMBER
+            Contacts.HAS_PHONE_NUMBER,
+            Contacts.STARRED,
+            Contacts.LAST_TIME_CONTACTED
     };
 
     Context context;
@@ -107,6 +111,12 @@ public class ContactsHelper {
         // photo thumb
         contact.photoUri = c.getString(c.getColumnIndex(Contacts.PHOTO_THUMBNAIL_URI));
 
+        // misc
+        long lastTimeContacted = c.getLong(c.getColumnIndex(Contacts.LAST_TIME_CONTACTED));
+        int starred = c.getInt(c.getColumnIndex(Contacts.STARRED));
+        contact.isStarred = starred != 0;
+        contact.lastTimeContacted = lastTimeContacted;
+
         // get data
         if (withPhones && c.getInt(c.getColumnIndex(Contacts.HAS_PHONE_NUMBER)) > 0 || withEmails) {
             List<String> phones = new ArrayList<>();
@@ -119,7 +129,7 @@ public class ContactsHelper {
                         emails.add(value);
                         break;
                     case CommonDataKinds.Phone.CONTENT_ITEM_TYPE:
-                        phones.add(cleanPhone(value));
+                        phones.add(value);
                         break;
 
                 }
@@ -201,6 +211,11 @@ public class ContactsHelper {
         String id = c.getString(c.getColumnIndex(ContactsContract.Data.CONTACT_ID));
         Contact contact = new Contact(id);
 
+        long lastTimeContacted = c.getLong(c.getColumnIndex(ContactsContract.Data.LAST_TIME_CONTACTED));
+        int starred = c.getInt(c.getColumnIndex(ContactsContract.Data.STARRED));
+        contact.isStarred = starred != 0;
+        contact.lastTimeContacted = lastTimeContacted;
+
         List<String> phones = new ArrayList<>();
         List<String> emails = new ArrayList<>();
 
@@ -216,7 +231,7 @@ public class ContactsHelper {
                     emails.add(value);
                     break;
                 case CommonDataKinds.Phone.CONTENT_ITEM_TYPE:
-                    phones.add(cleanPhone(value));
+                    phones.add(value);
                     break;
 
             }

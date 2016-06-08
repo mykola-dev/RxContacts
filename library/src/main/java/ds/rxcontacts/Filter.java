@@ -4,8 +4,8 @@ import android.provider.ContactsContract.Contacts;
 
 public enum Filter {
     HAS_IMAGE(Contacts.PHOTO_THUMBNAIL_URI, "NOT NULL"),
-    HAS_PHONE(Contacts.HAS_PHONE_NUMBER, ">0");
-    //HAS_EMAILS(null, null);
+    HAS_PHONE(Contacts.HAS_PHONE_NUMBER, ">0"),
+    STARRED(Contacts.STARRED, ">0");
 
     private String field;
     private String condition;
